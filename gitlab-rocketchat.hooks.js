@@ -169,15 +169,15 @@ class Script { // eslint-disable-line
 			user_action = 'updated';
 		}
 
-		if (data.assignees[0]) {
-			assigned = `*Assigned to*: @${data.assignees[0].username}\n`;
+		if (data.assignees) {
+			assigned = `*Assigned to*: @${data.assignees[0].name}\n`;
 		}
 
 		return {
 			content: {
 				username: 'gitlab/' + project.name,
 				icon_url: USE_ROCKETCHAT_AVATAR ? null : project_avatar,
-				text: (data.assignees[0] && data.assignees[0].username !== data.user.username) ? atName(data.assignees[0]) : '',
+				text: (data.assignees && data.assignees[0].username !== data.user.username) ? atName(data.assignees[0]) : '',
 				attachments: [
 					makeAttachment(
 						data.user,
