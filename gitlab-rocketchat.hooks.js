@@ -7,6 +7,7 @@ const IGNORE_UNKNOWN_EVENTS = false;
 const IGNORE_ERROR_MESSAGES = false;
 const USE_ROCKETCHAT_AVATAR = false;
 const DEFAULT_AVATAR = null; // <- null means use the avatar from settings if no other is available
+const CONVERT_USER_NAME = false;
 const STATUSES_COLORS = {
 	success: '#2faa60',
 	pending: '#e75e40',
@@ -32,10 +33,19 @@ const NOTIF_PIPELINE_STATUSES = {
 	canceled: true,
 	skipped: true,
 };
+const CHAT_ACCOUNTS = {
+	gitlab_user1: 'chat_user1',
+	gitlab_user2: 'chat_user2',
+};
 const ATTACHMENT_TITLE_SIZE = 10; // Put 0 here to have not title as in previous versions
 const refParser = (ref) => ref.replace(/^refs\/(?:tags|heads)\/(.+)$/, '$1');
 const displayName = (name) => (name && name.toLowerCase().replace(/\s+/g, '.').normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
-const atName = (user) => (user && user.name ? '@' + displayName(user.name) : '');
+const atName = (user) => {
+	if (CONVERT_USER_NAME) {
+		return user && CHAT_ACCOUNTS[user.username] ? '@' + CHAT_ACCOUNTS[user.username] : '';
+	}
+	return user && user.name ? '@' + displayName(user.name) : '';
+};
 const makeAttachment = (author, text, timestamp, color) => {
 	const currentTime = (new Date()).toISOString();
 	const attachment = {
