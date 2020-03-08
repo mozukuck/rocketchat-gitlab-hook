@@ -24,6 +24,14 @@ const ACTION_VERBS = {
 	add: 'added',
 	remove: 'removed',
 };
+const NOTIF_PIPELINE_STATUSES = {
+	running: true,
+	pending: true,
+	success: true,
+	failed: true,
+	canceled: true,
+	skipped: true,
+};
 const ATTACHMENT_TITLE_SIZE = 10; // Put 0 here to have not title as in previous versions
 const refParser = (ref) => ref.replace(/^refs\/(?:tags|heads)\/(.+)$/, '$1');
 const displayName = (name) => (name && name.toLowerCase().replace(/\s+/g, '.').normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
@@ -334,6 +342,9 @@ See: ${data.object_attributes.url}`,
 		const pipeline_time = pipeline.finished_at || pipeline.created_at;
 		const avatar = project.avatar_url || data.user_avatar || DEFAULT_AVATAR;
 
+		if (NOTIF_PIPELINE_STATUSES[pipeline.status] === false) {
+			return false;
+		}
 		return {
 			content: {
 				username: `gitlab/${project.name}`,
