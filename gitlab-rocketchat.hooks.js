@@ -24,6 +24,8 @@ const ACTION_VERBS = {
 	transfer: 'transferred',
 	add: 'added',
 	remove: 'removed',
+	close: 'closed',
+	reopen: 'reopened',
 };
 const NOTIF_PIPELINE_STATUSES = {
 	running: true,
