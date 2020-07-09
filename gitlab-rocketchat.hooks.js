@@ -242,7 +242,7 @@ See: ${data.object_attributes.url}`,
 		const mr = data.object_attributes;
 		const assignee = data.assignees ? data.assignees[0] : null;
 		const avatar = mr.target.avatar_url || mr.source.avatar_url || user.avatar_url || DEFAULT_AVATAR;
-		let at = [];
+		let at = []; // eslint-disable-line
 
 		if (mr.action === 'open' && assignee) {
 			at.push(atName(assignee));
