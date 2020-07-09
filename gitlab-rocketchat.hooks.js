@@ -240,7 +240,7 @@ See: ${data.object_attributes.url}`,
 	mergeRequestEvent(data) {
 		const user = data.user;
 		const mr = data.object_attributes;
-		const assignee = data.assignee;
+		const assignee = data.assignees ? data.assignees[0] : null;
 		const avatar = mr.target.avatar_url || mr.source.avatar_url || user.avatar_url || DEFAULT_AVATAR;
 		let at = [];
 
