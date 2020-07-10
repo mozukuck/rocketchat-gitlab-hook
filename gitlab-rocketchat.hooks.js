@@ -5,6 +5,7 @@ const NOTIF_COLOR = '#6498CC';
 const IGNORE_CONFIDENTIAL = true;
 const IGNORE_UNKNOWN_EVENTS = false;
 const IGNORE_ERROR_MESSAGES = false;
+const IGNORE_ISSUE_UPDATE = true;
 const USE_ROCKETCHAT_AVATAR = false;
 const DEFAULT_AVATAR = null; // <- null means use the avatar from settings if no other is available
 const CONVERT_USER_NAME = false;
@@ -167,6 +168,10 @@ class Script { // eslint-disable-line
 		let user_action = state;
 		let assigned = '';
 
+		if (IGNORE_ISSUE_UPDATE === true && action === 'update') {
+			return false;
+		}
+
 		if (action === 'update') {
 			user_action = 'updated';
 		}
@@ -183,10 +188,9 @@ class Script { // eslint-disable-line
 				attachments: [
 					makeAttachment(
 						data.user,
-						`${user_action} an issue _${data.object_attributes.title}_ on ${project.name}.
-*Description:* ${data.object_attributes.description}.
-${assigned}
-See: ${data.object_attributes.url}`,
+						`${user_action} an issue [${data.object_attributes.title}](${data.object_attributes.url}) on ${project.name}.\n
+						${data.object_attributes.description}\n
+						${assigned}`,
 						time
 					)
 				]
