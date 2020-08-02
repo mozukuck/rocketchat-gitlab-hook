@@ -5,7 +5,7 @@ const NOTIF_COLOR = '#6498CC';
 const IGNORE_CONFIDENTIAL = true;
 const IGNORE_UNKNOWN_EVENTS = false;
 const IGNORE_ERROR_MESSAGES = false;
-const USE_ROCKETCHAT_AVATAR = false;
+const USE_ROCKETCHAT_AVATAR = true;
 const DEFAULT_AVATAR = null; // <- null means use the avatar from settings if no other is available
 const CONVERT_USER_NAME = false;
 const STATUSES_COLORS = {
@@ -24,28 +24,36 @@ const ACTION_VERBS = {
 	transfer: 'transferred',
 	add: 'added',
 	remove: 'removed',
+	open: 'opened',
+	merge: 'merged',
 	close: 'closed',
 	reopen: 'reopened',
 };
 const NOTIF_ISSUE_ACTION = {
 	open: true,
-	update: true,
-	close: true,
-	reopen: true,
+	update: false,
+	close: false,
+	reopen: false,
+};
+const NOTIF_MR_ACTION = {
+	open: true,
+	update: false,
+	merge: true,
+	close: false,
 };
 const NOTIF_PIPELINE_STATUSES = {
-	running: true,
-	pending: true,
+	running: false,
+	pending: false,
 	success: true,
 	failed: true,
-	canceled: true,
-	skipped: true,
+	canceled: false,
+	skipped: false,
 };
 const CHAT_ACCOUNTS = {
 	gitlab_user1: 'chat_user1',
 	gitlab_user2: 'chat_user2',
 };
-const ATTACHMENT_TITLE_SIZE = 10; // Put 0 here to have not title as in previous versions
+const ATTACHMENT_TITLE_SIZE = 0; // Put 0 here to have not title as in previous versions
 const refParser = (ref) => ref.replace(/^refs\/(?:tags|heads)\/(.+)$/, '$1');
 const displayName = (name) => (name && name.toLowerCase().replace(/\s+/g, '.').normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
 const atName = (user) => {
@@ -166,23 +174,12 @@ class Script { // eslint-disable-line
 			return false;
 		}
 		const project = data.project || data.repository;
-		const state = data.object_attributes.state;
 		const action = data.object_attributes.action;
 		const time = data.object_attributes.updated_at;
 		const project_avatar = project.avatar_url || data.user.avatar_url || DEFAULT_AVATAR;
-		let user_action = state;
-		let assigned = '';
 
 		if (NOTIF_ISSUE_ACTION[action] === false) {
 			return false;
-		}
-
-		if (action === 'update') {
-			user_action = 'updated';
-		}
-
-		if (data.assignees) {
-			assigned = `*Assigned to*: @${data.assignees[0].name}\n`;
 		}
 
 		return {
@@ -193,9 +190,8 @@ class Script { // eslint-disable-line
 				attachments: [
 					makeAttachment(
 						data.user,
-						`${user_action} an issue [${data.object_attributes.title}](${data.object_attributes.url}) on ${project.name}.\n
-						${data.object_attributes.description}\n
-						${assigned}`,
+						`${ACTION_VERBS[action]} an issue [${data.object_attributes.title}](${data.object_attributes.url}) on ${project.name}.\n
+						${data.object_attributes.description}`,
 						time
 					)
 				]
@@ -253,6 +249,10 @@ class Script { // eslint-disable-line
 		const avatar = mr.target.avatar_url || mr.source.avatar_url || user.avatar_url || DEFAULT_AVATAR;
 		let at = []; // eslint-disable-line
 
+		if (NOTIF_MR_ACTION[mr.action] === false) {
+			return false;
+		}
+
 		if (mr.action === 'open' && assignee) {
 			at.push(atName(assignee));
 		} else if (mr.action === 'merge') {
@@ -272,7 +272,10 @@ class Script { // eslint-disable-line
 				icon_url: USE_ROCKETCHAT_AVATAR ? null : avatar,
 				text: at.join(' '),
 				attachments: [
-					makeAttachment(user, `${mr.action} MR [#${mr.iid} ${mr.title}](${mr.url})\n${mr.source_branch} into ${mr.target_branch}`, mr.updated_at)
+					makeAttachment(
+						user,
+						`${mr.action} MR [#${mr.iid} ${mr.title}](${mr.url})\n${mr.source_branch} into ${mr.target_branch}`,
+						mr.updated_at)
 				]
 			}
 		};
@@ -305,7 +308,9 @@ class Script { // eslint-disable-line
 					username: `gitlab/${project.name}`,
 					icon_url: USE_ROCKETCHAT_AVATAR ? null : avatar,
 					attachments: [
-						makeAttachment(user, `pushed new branch [${refParser(data.ref)}](${web_url}/commits/${refParser(data.ref)}) to [${project.name}](${web_url}), which is ${data.total_commits_count} commits ahead of master`)
+						makeAttachment(
+							user,
+							`pushed new branch [${refParser(data.ref)}](${web_url}/commits/${refParser(data.ref)}) to [${project.name}](${web_url}), which is ${data.total_commits_count} commits ahead of master`)
 					]
 				}
 			};
@@ -371,7 +376,12 @@ class Script { // eslint-disable-line
 				username: `gitlab/${project.name}`,
 				icon_url: USE_ROCKETCHAT_AVATAR ? null : avatar,
 				attachments: [
-					makeAttachment(user, `pipeline returned *${pipeline.status}* for commit [${commit.id.slice(0, 8)}](${commit.url}) made by *${commit.author.name}*`, pipeline_time, STATUSES_COLORS[pipeline.status])
+					makeAttachment(
+						user,
+						`pipeline returned *${pipeline.status}* for commit [${commit.id.slice(0, 8)}](${commit.url}) made by *${commit.author.name}*`,
+						pipeline_time,
+						STATUSES_COLORS[pipeline.status]
+					)
 				]
 			}
 		};
@@ -388,7 +398,12 @@ class Script { // eslint-disable-line
 				username: `gitlab/${data.repository.name}`,
 				icon_url: USE_ROCKETCHAT_AVATAR ? null : DEFAULT_AVATAR,
 				attachments: [
-					makeAttachment(user, `build named *${data.build_name}* returned *${data.build_status}* for [${data.project_name}](${data.repository.homepage})`, null, STATUSES_COLORS[data.build_status])
+					makeAttachment(
+						user,
+						`build named *${data.build_name}* returned *${data.build_status}* for [${data.project_name}](${data.repository.homepage})`,
+						null,
+						STATUSES_COLORS[data.build_status]
+					)
 				]
 			}
 		};
